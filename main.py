@@ -49,9 +49,12 @@ def generate_readme(config: dict, recommendations: dict, summaries: dict, chart_
     market = get_market_status()
 
     lines = []
-
     # ── 헤더 ──
     lines.append("# 📈 무한매수법 V2.2 자동 추천 시스템")
+    lines.append("")
+    lines.append("[![자동 갱신](https://github.com/Kim-Tae-yeon/infinite-buying-v2.2/actions/workflows/daily_recommend.yml/badge.svg)](https://github.com/Kim-Tae-yeon/infinite-buying-v2.2/actions/workflows/daily_recommend.yml)")
+    lines.append("")
+    lines.append("👆 **위 뱃지를 클릭**한 뒤 우측 상단의 `Run workflow` 버튼을 누르면 즉시 시세와 차트를 갱신합니다.")
     lines.append("")
     lines.append("> 라오어 무한매수법 V2.2 알고리즘 기반 매일 자동 매수/매도 추천")
     lines.append("> ")

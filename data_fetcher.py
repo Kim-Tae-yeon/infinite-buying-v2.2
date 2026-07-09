@@ -146,6 +146,13 @@ def get_ticker_summary(ticker: str) -> dict:
     df = fetch_daily_data(ticker, period="3mo")
     rsi = calculate_rsi(df)
     df = calculate_moving_averages(df)
+    
+    stock = yf.Ticker(ticker)
+    try:
+        info = stock.info
+        name = info.get("longName", info.get("shortName", ticker))
+    except Exception:
+        name = ticker
 
     current_price = df["Close"].iloc[-1]
     prev_close = df["Close"].iloc[-2] if len(df) >= 2 else current_price
@@ -153,6 +160,7 @@ def get_ticker_summary(ticker: str) -> dict:
 
     return {
         "ticker": ticker,
+        "name": name,
         "current_price": round(float(current_price), 2),
         "prev_close": round(float(prev_close), 2),
         "change_pct": round(float(change_pct), 2),

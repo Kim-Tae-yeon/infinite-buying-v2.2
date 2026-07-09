@@ -38,34 +38,23 @@ def _ensure_csv_dir():
 
 
 def _get_signal_text(rsi: float, price: float, avg_price: float, current_round: int) -> str:
-    """신호 텍스트 생성"""
+    """신호 텍스트 생성 (레퍼런스 이미지 스타일)"""
     if current_round == 0:
-        if rsi and rsi < 60:
-            return "🟢 진입"
-        else:
-            return "🟡 대기"
-    elif price < avg_price * 0.95:
-        return "🔴 급락"
+        return "ST" if rsi and rsi < 60 else "BOTH"
     elif price < avg_price:
-        return "🟢 매수적기"
-    elif price > avg_price * 1.10:
-        return "💰 매도구간"
+        return "ST"
     elif price > avg_price * 1.05:
-        return "🟡 매도근접"
+        return "HHLL"
     else:
-        return "⏸️ 보유"
+        return "BOTH"
 
 
-def _get_phase_text(current_round: int, late_start: int = 20) -> str:
-    """현재 페이즈"""
+def _get_phase_text(current_round: int) -> str:
+    """상태 텍스트 생성"""
     if current_round == 0:
-        return "대기"
-    elif current_round < late_start:
-        return f"초기({current_round}R)"
-    elif current_round <= 40:
-        return f"후기({current_round}R)"
+        return "신규"
     else:
-        return "소진"
+        return "추세진행"
 
 
 def build_dashboard_data(config: dict) -> list[dict]:
@@ -106,20 +95,21 @@ def build_dashboard_data(config: dict) -> list[dict]:
                 pnl_pct = 0
                 pnl_dollar = 0
 
-            # LOC 매수가 계산
-            loc_avg_price = avg_price if avg_price > 0 else current_price
-            loc_big_price = min(
-                current_price * 1.10,
-                avg_price * 1.05 if avg_price > 0 else current_price * 1.10
-            )
-
-            # 매도 목표가
-            if current_round < 20:
-                sell_target_1 = avg_price * 1.10 if avg_price > 0 else 0
-                sell_target_2 = 0
-            else:
-                sell_target_1 = avg_price * 1.05 if avg_price > 0 else 0
-                sell_target_2 = avg_price * 1.10 if avg_price > 0 else 0
+            # 애널의견
+            analyst = "none"
+            if rsi:
+                if rsi < 40:
+                    analyst = "strong_buy"
+                elif rsi < 60:
+                    analyst = "buy"
+                elif rsi < 70:
+                    analyst = "hold"
+                else:
+                    analyst = "none"
+                    
+            # 목표가 & 기대수익
+            target_price = sell_target_1 if sell_target_1 > 0 else current_price * 1.10
+            expected_return = ((target_price - current_price) / current_price) * 100 if current_price > 0 else 0
 
             # 신호
             signal = _get_signal_text(rsi, current_price, avg_price, current_round)
@@ -127,56 +117,32 @@ def build_dashboard_data(config: dict) -> list[dict]:
 
             row = {
                 "종목코드": ticker,
+                "종목명": summary.get("name", ticker),
                 "신호": signal,
-                "페이즈": phase,
-                "현재가($)": round(current_price, 2),
-                "전일대비%": round(summary.get("change_pct", 0), 2),
-                "평단가($)": round(avg_price, 2),
-                "LOC평단매수($)": round(loc_avg_price, 2),
-                "LOC큰수매수($)": round(loc_big_price, 2) if current_round < 20 else "-",
-                "매도목표1($)": round(sell_target_1, 2) if sell_target_1 > 0 else "-",
-                "매도목표2($)": round(sell_target_2, 2) if sell_target_2 > 0 else "-",
-                "보유수량": round(total_shares, 4),
-                "총투자액($)": round(total_invested, 2),
-                "평가액($)": round(current_value, 2),
-                "수익률%": round(pnl_pct, 2),
-                "수익금($)": round(pnl_dollar, 2),
-                "T값": f"{current_round}/40",
-                "잔여시드($)": round(config["seed_money_per_ticker"] - total_invested, 2),
-                "RSI": round(rsi, 1) if rsi else "-",
-                "MA5($)": summary.get("ma5", "-"),
-                "MA20($)": summary.get("ma20", "-"),
-                "거래량": f"{summary.get('volume', 0):,}",
-                "추천요약": rec.get("summary", ""),
-                "데이터일자": summary.get("data_date", ""),
+                "상태": phase,
+                "현재가": round(current_price, 2),
+                "진입가": round(avg_price, 2) if avg_price > 0 else round(current_price, 2),
+                "추세후%": round(pnl_pct, 1),
+                "일차": current_round,
+                "애널의견": analyst,
+                "목표가": round(target_price, 2),
+                "기대수익%": round(expected_return, 1),
             }
             rows.append(row)
 
         except Exception as e:
             rows.append({
                 "종목코드": ticker,
-                "신호": "❌ 오류",
-                "페이즈": "-",
-                "현재가($)": f"오류: {e}",
-                "전일대비%": "-",
-                "평단가($)": "-",
-                "LOC평단매수($)": "-",
-                "LOC큰수매수($)": "-",
-                "매도목표1($)": "-",
-                "매도목표2($)": "-",
-                "보유수량": "-",
-                "총투자액($)": "-",
-                "평가액($)": "-",
-                "수익률%": "-",
-                "수익금($)": "-",
-                "T값": "-",
-                "잔여시드($)": "-",
-                "RSI": "-",
-                "MA5($)": "-",
-                "MA20($)": "-",
-                "거래량": "-",
-                "추천요약": str(e),
-                "데이터일자": "-",
+                "종목명": "❌ 오류",
+                "신호": "-",
+                "상태": "-",
+                "현재가": 0,
+                "진입가": 0,
+                "추세후%": 0,
+                "일차": 0,
+                "애널의견": "none",
+                "목표가": 0,
+                "기대수익%": 0,
             })
 
     return rows
@@ -273,7 +239,7 @@ def export_to_google_sheets(config: dict, creds_json: Optional[str] = None, spre
     ws_dashboard.clear()
 
     # 타이틀 행
-    title_row = [f"무한매수법 V2.2 — 업데이트: {update_time}"]
+    title_row = [f"무한매수법 V2.2 업데이트 {update_time} ✓ 정상추세장 (RSI 진입 추천)"]
     ws_dashboard.update("A1", [title_row])
 
     # 데이터
@@ -292,26 +258,36 @@ def export_to_google_sheets(config: dict, creds_json: Optional[str] = None, spre
 def _apply_formatting(ws, data_rows: int):
     """Google Sheets 서식 적용 (색상, 조건부 서식 등)"""
     try:
-        # 헤더 행 굵게
-        ws.format("A3:V3", {
-            "backgroundColor": {"red": 0.15, "green": 0.15, "blue": 0.2},
-            "textFormat": {"bold": True, "foregroundColor": {"red": 0.9, "green": 0.85, "blue": 0.6}},
-            "horizontalAlignment": "CENTER",
+        # 헤더 행 (라이트 모드)
+        ws.format("A3:K3", {
+            "backgroundColor": {"red": 0.95, "green": 0.95, "blue": 0.95},
+            "textFormat": {"bold": True, "foregroundColor": {"red": 0.2, "green": 0.2, "blue": 0.2}},
+            "horizontalAlignment": "LEFT",
+            "borders": {
+                "bottom": {"style": "SOLID", "width": 1, "color": {"red": 0.8, "green": 0.8, "blue": 0.8}}
+            }
         })
 
-        # 타이틀 굵게 + 크게
+        # 타이틀
         ws.format("A1", {
-            "textFormat": {"bold": True, "fontSize": 14, "foregroundColor": {"red": 0.3, "green": 0.8, "blue": 0.5}},
+            "textFormat": {"bold": True, "fontSize": 12, "foregroundColor": {"red": 0.1, "green": 0.1, "blue": 0.1}},
         })
 
-        # 수익률% 열 조건부 서식은 gspread batch_update로 처리 가능하나 복잡하므로 생략
-        # 대신 데이터 행 전체에 기본 스타일 적용
+        # 데이터 행
         if data_rows > 1:
             end_row = data_rows + 3
-            ws.format(f"A4:V{end_row}", {
-                "backgroundColor": {"red": 0.1, "green": 0.1, "blue": 0.13},
-                "textFormat": {"foregroundColor": {"red": 0.8, "green": 0.83, "blue": 0.85}},
-                "horizontalAlignment": "CENTER",
+            ws.format(f"A4:K{end_row}", {
+                "backgroundColor": {"red": 1.0, "green": 1.0, "blue": 1.0},
+                "textFormat": {"foregroundColor": {"red": 0.1, "green": 0.1, "blue": 0.1}},
+                "horizontalAlignment": "LEFT",
+            })
+            
+            # 테두리 (가로선 연하게)
+            ws.format(f"A3:K{end_row}", {
+                "borders": {
+                    "innerHorizontal": {"style": "SOLID", "width": 1, "color": {"red": 0.9, "green": 0.9, "blue": 0.9}},
+                    "bottom": {"style": "SOLID", "width": 1, "color": {"red": 0.8, "green": 0.8, "blue": 0.8}}
+                }
             })
 
     except Exception as e:
