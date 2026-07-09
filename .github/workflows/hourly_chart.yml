@@ -1,0 +1,37 @@
+name: "📊 매시간 차트 갱신"
+
+on:
+  schedule:
+    # 미국 장 시간대 기준 매시간 정각 (UTC 13:00 ~ 21:00 = ET 9:00 ~ 17:00)
+    - cron: "0 13-21 * * 1-5"
+  workflow_dispatch:  # 수동 실행 가능
+
+permissions:
+  contents: write
+
+jobs:
+  update-charts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: 📦 Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: 📊 Generate charts
+        run: python main.py --mode chart
+
+      - name: 📤 Commit & Push
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add charts/ README.md
+          git diff --cached --quiet || git commit -m "📊 차트 갱신 $(date +'%Y-%m-%d %H:%M UTC')"
+          git push

@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# Virtual Environment
+venv/
+.env/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 시뮬레이션 상태는 추적 (GitHub에 커밋)
+# state/ 디렉토리는 .gitignore에서 제외
+
+# 임시 파일
+*.tmp
+*.bak

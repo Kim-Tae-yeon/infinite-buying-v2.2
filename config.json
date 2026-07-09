@@ -1,0 +1,16 @@
+{
+    "tickers": ["TQQQ", "SOXL"],
+    "total_rounds": 40,
+    "seed_money_per_ticker": 4000,
+    "sell_target_pct_early": 10.0,
+    "sell_target_pct_late_high": 10.0,
+    "sell_target_pct_late_low": 5.0,
+    "loc_big_buy_premium_pct": 10.0,
+    "loc_big_buy_cap_above_avg_pct": 5.0,
+    "late_phase_start_round": 20,
+    "rsi_entry_threshold": 60,
+    "rsi_period": 14,
+    "chart_style": "dark",
+    "timezone": "Asia/Seoul",
+    "readme_template": "templates/README_template.md"
+}
