@@ -18,6 +18,7 @@ import pytz
 from data_fetcher import get_ticker_summary, get_market_status
 from algorithm import InfiniteBuyV22, load_state
 from chart_generator import generate_all_charts
+from sheets_exporter import export_to_csv, export_to_google_sheets
 
 # 프로젝트 루트 경로
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -285,6 +286,19 @@ def run_daily_recommendation(config: dict):
     # README 생성
     generate_readme(config, recommendations, summaries, chart_files)
 
+    # CSV 내보내기
+    print("\n── 📋 CSV 내보내기 ──")
+    export_to_csv(config)
+
+    # Google Sheets 동기화 (환경변수에 인증 정보가 있을 때만)
+    creds_json = os.environ.get("GOOGLE_SHEETS_CREDS")
+    spreadsheet_id = config.get("spreadsheet_id", os.environ.get("SPREADSHEET_ID", ""))
+    if creds_json:
+        print("\n── 📊 Google Sheets 동기화 ──")
+        export_to_google_sheets(config, creds_json=creds_json, spreadsheet_id=spreadsheet_id or None)
+    else:
+        print("\n  ℹ️ GOOGLE_SHEETS_CREDS 환경변수 없음 → Google Sheets 동기화 건너뜀")
+
     print("\n" + "=" * 60)
     print("✅ 일일 추천 리포트 생성 완료!")
     print("=" * 60)
@@ -314,7 +328,7 @@ def run_simulate_buy(config: dict, ticker: str, price: float = None):
 
 def main():
     parser = argparse.ArgumentParser(description="무한매수법 V2.2 자동 추천 시스템")
-    parser.add_argument("--mode", choices=["chart", "recommend", "full", "simulate-buy", "reset"],
+    parser.add_argument("--mode", choices=["chart", "recommend", "full", "simulate-buy", "reset", "sheets"],
                         default="full", help="실행 모드")
     parser.add_argument("--ticker", type=str, help="종목 코드 (simulate-buy, reset 모드에서 사용)")
     parser.add_argument("--price", type=float, help="시뮬레이션 매수 가격 (없으면 현재가 사용)")
@@ -348,6 +362,16 @@ def main():
         engine = InfiniteBuyV22(config)
         engine.reset_state(args.ticker)
         print(f"✅ {args.ticker} 상태 리셋 완료!")
+
+    elif args.mode == "sheets":
+        print("📊 Google Sheets / CSV 내보내기 모드")
+        export_to_csv(config)
+        creds_json = os.environ.get("GOOGLE_SHEETS_CREDS")
+        spreadsheet_id = config.get("spreadsheet_id", os.environ.get("SPREADSHEET_ID", ""))
+        if creds_json:
+            export_to_google_sheets(config, creds_json=creds_json, spreadsheet_id=spreadsheet_id or None)
+        else:
+            print("  ℹ️ GOOGLE_SHEETS_CREDS 환경변수 없음 → CSV만 생성됨")
 
     print("\n🏁 작업 완료!")
 

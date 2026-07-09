@@ -12,6 +12,9 @@ permissions:
 jobs:
   daily-recommendation:
     runs-on: ubuntu-latest
+    env:
+      GOOGLE_SHEETS_CREDS: ${{ secrets.GOOGLE_SHEETS_CREDS }}
+      SPREADSHEET_ID: ${{ secrets.SPREADSHEET_ID }}
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v4
